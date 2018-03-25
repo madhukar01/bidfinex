@@ -1,9 +1,11 @@
 # bidfinex
 A decentralised marketplace on Ethereum blockchain
 
-## Start from scratch
+### Start from scratch
 **On Linux:**
+
     Install Node.js v8.10
+    
     ```
     sudo apt-get update
     sudo apt-get install curl
