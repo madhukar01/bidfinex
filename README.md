@@ -6,7 +6,7 @@ A decentralised marketplace on Ethereum blockchain
 
     Install Node.js v8.10
     
-    ```
+    
     sudo apt-get update
     sudo apt-get install curl
     cd ~
@@ -14,12 +14,12 @@ A decentralised marketplace on Ethereum blockchain
     sudo bash nodesource_setup.sh
     sudo apt-get install nodejs
     nodejs -v
-    ```
+    
 
     Install truffle framework
-    ```
+    
     npm install -g truffle
     truffle version
     truffle unpack webpack
-    ```
+    
 This will install all requirements to start developing you DApp.
