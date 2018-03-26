@@ -26,4 +26,29 @@ contract bidfinex {
 
         bid[] bids;
     }
+
+    mapping(address => uint[]) public auctionRefunds;
+    mapping(address => uint[]) public auctionOwnerMap;
+    mapping(address => uint[]) public auctionBidderMap;
+
+    auction[] public auctions;
+    address owner;
+    
+    modifier onlySeller (uint auctionId) {
+        if (auctions[auctionId].seller != msg.sender)
+        revert();
+        _;
+    }
+    
+    modifier onlyOwner {
+        if (owner != msg.sender)
+        revert();
+        _;
+    }
+
+    modifier onlyActive (uint auctionId) {
+        if (auctions[auctionId].status != auctionStatus.Active)
+        revert();
+        _;
+    }
 }
