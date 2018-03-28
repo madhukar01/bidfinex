@@ -1,7 +1,7 @@
 # bidfinex
 A decentralised marketplace on Ethereum blockchain
 
-### Start from scratch
+### Start DApp development from scratch
 **On Linux:**
 
     Install Node.js v8.10
@@ -19,6 +19,7 @@ A decentralised marketplace on Ethereum blockchain
     Install truffle framework
     
     npm install -g truffle
+    npm install -g ganache-cli
     truffle version
     truffle unpack webpack
     
