@@ -1,5 +1,7 @@
 pragma solidity ^0.4.19;
 
+import "./inventory.sol";
+
 contract bidfinex {
     
     struct bid
@@ -14,7 +16,7 @@ contract bidfinex {
     struct auction {
         address seller;
         string title;
-        string recordId;
+        uint recordId;
         string description;
         auctionStatus status;
         uint deadline; //Deadline will be block number as contract will not have access to time and date.
@@ -75,16 +77,16 @@ contract bidfinex {
     function createAuction( string _title,
                             string _description,
                             address _productAddress,
-                            string _recordId,
+                            uint _recordId,
                             uint _deadline,
                             uint256 _startingPrice,
                             uint256 _reservedPrice )
                             public returns (uint auctionId) {
 
-        /*if(!personOwnsAsset(msg.sender, _productAddress, _recordId)) {
+        if(!personOwnsAsset(msg.sender, _productAddress, _recordId)) {
             throwError("Seller does not own the product");
             revert();
-        }*/
+        }
         
         //else
         if(block.number >= _deadline) {
@@ -124,9 +126,14 @@ contract bidfinex {
         return auctionId;
     }
 
-    function strconcat(string _first, string _second) internal pure returns (string) {
+    function personOwnsAsset(address _person, address _product, uint _recordId) private view returns (bool success) {
+        product productContract = product(_product);
+        return productContract.getOwnerAddress(_recordId) == _person;
+    }
+    
+    function strconcat(string _first, uint _second) internal pure returns (string) {
         bytes memory temp1 = bytes(_first);
-        bytes memory temp2 = bytes(_second);
+        bytes memory temp2 = bytes(uintToString(_second));
         bytes memory ans = new bytes(temp1.length + temp2.length);
 
         uint k = 0;
@@ -144,5 +151,24 @@ contract bidfinex {
             temp[i] = byte(uint8(uint(_temp) / (2**(8*(19-i)))));
         
         return string(temp);
+    }
+
+    function uintToString(uint v) internal pure returns (string) {
+        uint maxlength = 100;
+        uint temp = v;
+        bytes memory reversed = new bytes(maxlength);
+        uint i = 0;
+        while (temp != 0) {
+            uint remainder = temp % 10;
+            temp = temp / 10;
+            reversed[i++] = byte(48 + remainder);
+        }
+        
+        bytes memory s = new bytes(i);
+        for (uint j = 0; j < i; j++) {
+            s[j] = reversed[i - 1 - j];
+        }
+        
+        return string(s);
     }
 }
