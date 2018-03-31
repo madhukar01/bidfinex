@@ -172,6 +172,31 @@ contract bidfinex {
         return (tempBid.bidder, tempBid.amount, tempBid.timestamp);
     }
     
+    function placeBid(uint auctionId) public payable onlyActive(auctionId) returns (bool success) {
+        uint256 amount = msg.value;
+        auction memory temp = auctions[auctionId];
+
+        if (temp.currentBid >= amount)
+            revert();
+
+        uint bidIdx = temp.bids.length + 1;
+        bid memory tempBid = temp.bids[bidIdx];
+        tempBid.bidder = msg.sender;
+        tempBid.amount = amount;
+        tempBid.timestamp = block.timestamp;
+        temp.currentBid = amount;
+
+        auctionOwnerMap[tempBid.bidder].push(auctionId);
+
+        // Log refunds for the previous bidder
+        if (bidIdx > 0) {
+            bid memory previousBid = temp.bids[bidIdx - 1];
+            auctionRefunds[previousBid.bidder] += previousBid.amount;
+        }
+
+        bidPlaced(auctionId, tempBid.bidder, tempBid.amount);
+        return true;
+    }
     /*function personOwnsAsset(address _person, address _product, uint _recordId) private view returns (bool success) {
         product productContract = product(_product);
         return productContract.getOwnerAddress(_recordId) == _person;
