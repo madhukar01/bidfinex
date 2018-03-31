@@ -197,6 +197,22 @@ contract bidfinex {
         bidPlaced(auctionId, tempBid.bidder, tempBid.amount);
         return true;
     }
+
+    function getRefundValue() public view returns (uint) {
+        return auctionRefunds[msg.sender];
+    }
+
+    function withdrawRefund() public {
+        uint256 refund = auctionRefunds[msg.sender];
+
+        if (refund <= 0)
+            revert();
+        else if(address(this).balance <= refund)
+            revert();
+
+        msg.sender.transfer(refund);
+        auctionRefunds[msg.sender] = 0;
+    }
     /*function personOwnsAsset(address _person, address _product, uint _recordId) private view returns (bool success) {
         product productContract = product(_product);
         return productContract.getOwnerAddress(_recordId) == _person;
