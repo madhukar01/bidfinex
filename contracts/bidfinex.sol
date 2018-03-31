@@ -9,7 +9,7 @@ contract bidfinex {
         uint timestamp;
     }
 
-    enum auctionStatus { Pending, Live, Dead }
+    enum auctionStatus { Live, Dead }
 
     struct auction {
         address seller;
@@ -27,7 +27,7 @@ contract bidfinex {
         bid[] bids;
     }
 
-    mapping(address => uint[]) public auctionRefunds;
+    mapping(address => uint256) public auctionRefunds;
     mapping(address => uint[]) public auctionOwnerMap;
     mapping(address => uint[]) public auctionBidderMap;
     
@@ -95,7 +95,7 @@ contract bidfinex {
         newAuction.title = _title;
         newAuction.auctionId = id;
         newAuction.description = _description;
-        newAuction.status = auctionStatus.Pending;
+        newAuction.status = auctionStatus.Live;
         newAuction.deadline = _deadline;
         newAuction.startingPrice = _startingPrice;
         newAuction.reservedPrice = _reservedPrice;
@@ -141,6 +141,22 @@ contract bidfinex {
         return auctionOwnerMap[user][idx];
     }
 
+    function cancelAuction(uint auctionId) onlySeller(auctionId) public returns (bool) {
+        auction memory temp = auctions[auctionId];
+        
+        if (temp.currentBid >= temp.reservedPrice) revert();   // Auction cannot be cancelled if there is a bid already
+
+        // Refund to the bidder
+        uint bidsLength = temp.bids.length;
+        if (bidsLength > 0) {
+            bid memory topBid = temp.bids[bidsLength - 1];
+            auctionRefunds[topBid.bidder] += topBid.amount;
+        }
+        temp.status = auctionStatus.Dead;
+                
+        auctionCancelled(auctionId);
+        return true;
+    }
     
     /*function personOwnsAsset(address _person, address _product, uint _recordId) private view returns (bool success) {
         product productContract = product(_product);
