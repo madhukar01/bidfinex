@@ -124,6 +124,23 @@ contract bidfinex {
                 temp.bids.length);
     }
 
+    function getAuctionCount() public view returns (uint) {
+        return auctions.length;
+    }
+
+    function getAuctionStatus(uint idx) public view returns (uint) {
+        auction memory temp = auctions[idx];
+        return uint(temp.status);
+    }
+
+    function getAuctionCountForUser(address user) public view returns (uint) {
+        return auctionOwnerMap[user].length;
+    }
+
+    function getAuctionIdForUserIdx(address user, uint idx) public view returns (uint) {
+        return auctionOwnerMap[user][idx];
+    }
+
     
     /*function personOwnsAsset(address _person, address _product, uint _recordId) private view returns (bool success) {
         product productContract = product(_product);
