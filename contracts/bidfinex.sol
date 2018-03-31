@@ -158,6 +158,20 @@ contract bidfinex {
         return true;
     }
     
+    function getBidCountForAuction(uint auctionId) public view returns (uint) {
+        auction memory temp = auctions[auctionId];
+        return temp.bids.length;
+    }
+
+    function getBidForAuctionByIdx(uint auctionId, uint idx) public view returns (address bidder, uint256 amount, uint timestamp) {
+        auction memory temp = auctions[auctionId];
+        if(idx > temp.bids.length - 1)
+            revert();
+
+        bid memory tempBid = temp.bids[idx];
+        return (tempBid.bidder, tempBid.amount, tempBid.timestamp);
+    }
+    
     /*function personOwnsAsset(address _person, address _product, uint _recordId) private view returns (bool success) {
         product productContract = product(_product);
         return productContract.getOwnerAddress(_recordId) == _person;
