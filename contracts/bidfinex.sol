@@ -107,7 +107,24 @@ contract bidfinex {
 
         return id;
     }
+    
+    function getAuction(uint idx) public view returns (address, uint, string, string, uint, uint256, uint256, uint256, uint) {
+        auction memory temp = auctions[idx];
+        if (temp.seller == 0) 
+            revert();
 
+        return (temp.seller,
+                temp.auctionId,
+                temp.title,
+                temp.description,
+                temp.deadline,
+                temp.startingPrice,
+                temp.reservedPrice,
+                temp.currentBid,
+                temp.bids.length);
+    }
+
+    
     /*function personOwnsAsset(address _person, address _product, uint _recordId) private view returns (bool success) {
         product productContract = product(_product);
         return productContract.getOwnerAddress(_recordId) == _person;
