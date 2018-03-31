@@ -1,7 +1,5 @@
 pragma solidity ^0.4.19;
 
-import "./inventory.sol";
-
 contract bidfinex {
     
     struct bid
@@ -16,11 +14,10 @@ contract bidfinex {
     struct auction {
         address seller;
         string title;
-        uint recordId;
+        uint auctionId;
         string description;
         auctionStatus status;
         uint deadline; //Deadline will be block number as contract will not have access to time and date.
-        address productAddress;
         
         //Price will be in wei a unit of gas.
         uint256 startingPrice;
@@ -33,8 +30,7 @@ contract bidfinex {
     mapping(address => uint[]) public auctionRefunds;
     mapping(address => uint[]) public auctionOwnerMap;
     mapping(address => uint[]) public auctionBidderMap;
-    mapping(string => bool) private activeAuctionProductMap; //Maintain dictionary of product address + record id to check if they are already on auction
-
+    
     auction[] public auctions;
     address owner;
     
@@ -56,7 +52,7 @@ contract bidfinex {
         if (temp.status != auctionStatus.Live)
         revert();
 
-        if (block.number >= temp.deadline)
+        else if (block.number >= temp.deadline)
         revert();
         
         _;
@@ -76,18 +72,11 @@ contract bidfinex {
 
     function createAuction( string _title,
                             string _description,
-                            address _productAddress,
-                            uint _recordId,
                             uint _deadline,
                             uint256 _startingPrice,
                             uint256 _reservedPrice )
-                            public returns (uint auctionId) {
+                            public returns (uint id) {
 
-        if(!personOwnsAsset(msg.sender, _productAddress, _recordId)) {
-            throwError("Seller does not own the product");
-            revert();
-        }
-        
         //else
         if(block.number >= _deadline) {
             throwError("Invalid deadline entered");
@@ -99,34 +88,27 @@ contract bidfinex {
             revert();
         }
 
-        else if(activeAuctionProductMap[strconcat(addressToString(_productAddress), _recordId)] == true) {
-            throwError("Item already in auction");
-            revert();
-        }
-
-        auctionId = auctions.length++;
-        auction storage newAuction = auctions[auctionId];
+        id = auctions.length++;
+        auction storage newAuction = auctions[id];
         
         newAuction.seller = msg.sender;
         newAuction.title = _title;
-        newAuction.recordId = _recordId;
+        newAuction.auctionId = id;
         newAuction.description = _description;
         newAuction.status = auctionStatus.Pending;
         newAuction.deadline = _deadline;
-        newAuction.productAddress = _productAddress;
         newAuction.startingPrice = _startingPrice;
         newAuction.reservedPrice = _reservedPrice;
         newAuction.currentBid = _reservedPrice;
 
-        auctionOwnerMap[newAuction.seller].push(auctionId);
-        activeAuctionProductMap[strconcat(addressToString(_productAddress), _recordId)] = true;
+        auctionOwnerMap[newAuction.seller].push(id);
 
-        auctionCreated(auctionId, newAuction.title, newAuction.startingPrice, newAuction.reservedPrice);
+        auctionCreated(id, newAuction.title, newAuction.startingPrice, newAuction.reservedPrice);
 
-        return auctionId;
+        return id;
     }
 
-    function personOwnsAsset(address _person, address _product, uint _recordId) private view returns (bool success) {
+    /*function personOwnsAsset(address _person, address _product, uint _recordId) private view returns (bool success) {
         product productContract = product(_product);
         return productContract.getOwnerAddress(_recordId) == _person;
     }
@@ -170,5 +152,5 @@ contract bidfinex {
         }
         
         return string(s);
-    }
+    }*/
 }
