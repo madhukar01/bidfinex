@@ -213,49 +213,31 @@ contract bidfinex {
         msg.sender.transfer(refund);
         auctionRefunds[msg.sender] = 0;
     }
-    /*function personOwnsAsset(address _person, address _product, uint _recordId) private view returns (bool success) {
-        product productContract = product(_product);
-        return productContract.getOwnerAddress(_recordId) == _person;
-    }
-    
-    function strconcat(string _first, uint _second) internal pure returns (string) {
-        bytes memory temp1 = bytes(_first);
-        bytes memory temp2 = bytes(uintToString(_second));
-        bytes memory ans = new bytes(temp1.length + temp2.length);
 
-        uint k = 0;
-        for (uint i = 0; i < temp1.length; ++i)
-            ans[k++] = temp1[i];
-        for (i = 0; i < temp2.length; ++i)
-            ans[k++] = temp2[i];
-        
-        return string(ans);
-    }
+    function endAuction(uint auctionId) onlySeller(auctionId) onlyActive(auctionId) public returns (bool success) {
+        // Check if the auction is passed the end date
+        auction memory temp = auctions[auctionId];
 
-    function addressToString(address _temp) internal pure returns (string) {
-        bytes memory temp = new bytes(20);
-        for (uint i = 0; i < 20; ++i)
-            temp[i] = byte(uint8(uint(_temp) / (2**(8*(19-i)))));
-        
-        return string(temp);
-    }
-
-    function uintToString(uint v) internal pure returns (string) {
-        uint maxlength = 100;
-        uint temp = v;
-        bytes memory reversed = new bytes(maxlength);
-        uint i = 0;
-        while (temp != 0) {
-            uint remainder = temp % 10;
-            temp = temp / 10;
-            reversed[i++] = byte(48 + remainder);
+        if (temp.bids.length == 0) {
+            temp.status = auctionStatus.Dead;
+            return true;
         }
-        
-        bytes memory s = new bytes(i);
-        for (uint j = 0; j < i; j++) {
-            s[j] = reversed[i - 1 - j];
+
+        bid memory topBid = temp.bids[temp.bids.length - 1];
+
+        // If the auction hit its reserve price
+        if (temp.currentBid >= temp.reservedPrice)
+            auctionSold(auctionId, topBid.bidder, temp.currentBid);
+        else {
+            auctionRefunds[topBid.bidder] += temp.currentBid;
+            auctionUnsold(auctionId, temp.currentBid, temp.reservedPrice);
         }
-        
-        return string(s);
-    }*/
+
+        temp.status = auctionStatus.Dead;
+        return true;
+    }
+
+    function () public {
+        revert();
+    }
 }
