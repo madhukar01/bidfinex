@@ -9,16 +9,15 @@ contract bidfinex {
         uint timestamp;
     }
 
-    enum auctionStatus { Pending, Live, Dead }
+    enum auctionStatus { Live, Dead }
 
     struct auction {
         address seller;
         string title;
-        string recordId;
+        uint auctionId;
         string description;
         auctionStatus status;
         uint deadline; //Deadline will be block number as contract will not have access to time and date.
-        address productAddress;
         
         //Price will be in wei a unit of gas.
         uint256 startingPrice;
@@ -28,11 +27,10 @@ contract bidfinex {
         bid[] bids;
     }
 
-    mapping(address => uint[]) public auctionRefunds;
+    mapping(address => uint256) public auctionRefunds;
     mapping(address => uint[]) public auctionOwnerMap;
     mapping(address => uint[]) public auctionBidderMap;
-    mapping(string => bool) private activeAuctionProductMap; //Maintain dictionary of product address + record id to check if they are already on auction
-
+    
     auction[] public auctions;
     address owner;
     
@@ -54,7 +52,7 @@ contract bidfinex {
         if (temp.status != auctionStatus.Live)
         revert();
 
-        if (block.number >= temp.deadline)
+        else if (block.number >= temp.deadline)
         revert();
         
         _;
@@ -74,18 +72,11 @@ contract bidfinex {
 
     function createAuction( string _title,
                             string _description,
-                            address _productAddress,
-                            string _recordId,
                             uint _deadline,
                             uint256 _startingPrice,
                             uint256 _reservedPrice )
-                            public returns (uint auctionId) {
+                            public returns (uint id) {
 
-        /*if(!personOwnsAsset(msg.sender, _productAddress, _recordId)) {
-            throwError("Seller does not own the product");
-            revert();
-        }*/
-        
         //else
         if(block.number >= _deadline) {
             throwError("Invalid deadline entered");
@@ -97,52 +88,156 @@ contract bidfinex {
             revert();
         }
 
-        else if(activeAuctionProductMap[strconcat(addressToString(_productAddress), _recordId)] == true) {
-            throwError("Item already in auction");
-            revert();
-        }
-
-        auctionId = auctions.length++;
-        auction storage newAuction = auctions[auctionId];
+        id = auctions.length++;
+        auction storage newAuction = auctions[id];
         
         newAuction.seller = msg.sender;
         newAuction.title = _title;
-        newAuction.recordId = _recordId;
+        newAuction.auctionId = id;
         newAuction.description = _description;
-        newAuction.status = auctionStatus.Pending;
+        newAuction.status = auctionStatus.Live;
         newAuction.deadline = _deadline;
-        newAuction.productAddress = _productAddress;
         newAuction.startingPrice = _startingPrice;
         newAuction.reservedPrice = _reservedPrice;
         newAuction.currentBid = _reservedPrice;
 
-        auctionOwnerMap[newAuction.seller].push(auctionId);
-        activeAuctionProductMap[strconcat(addressToString(_productAddress), _recordId)] = true;
+        auctionOwnerMap[newAuction.seller].push(id);
 
-        auctionCreated(auctionId, newAuction.title, newAuction.startingPrice, newAuction.reservedPrice);
+        auctionCreated(id, newAuction.title, newAuction.startingPrice, newAuction.reservedPrice);
 
-        return auctionId;
+        return id;
+    }
+    
+    function getAuction(uint idx) public view returns (address, uint, string, string, uint, uint256, uint256, uint256, uint) {
+        auction memory temp = auctions[idx];
+        if (temp.seller == 0) 
+            revert();
+
+        return (temp.seller,
+                temp.auctionId,
+                temp.title,
+                temp.description,
+                temp.deadline,
+                temp.startingPrice,
+                temp.reservedPrice,
+                temp.currentBid,
+                temp.bids.length);
     }
 
-    function strconcat(string _first, string _second) internal pure returns (string) {
-        bytes memory temp1 = bytes(_first);
-        bytes memory temp2 = bytes(_second);
-        bytes memory ans = new bytes(temp1.length + temp2.length);
-
-        uint k = 0;
-        for (uint i = 0; i < temp1.length; ++i)
-            ans[k++] = temp1[i];
-        for (i = 0; i < temp2.length; ++i)
-            ans[k++] = temp2[i];
-        
-        return string(ans);
+    function getAuctionCount() public view returns (uint) {
+        return auctions.length;
     }
 
-    function addressToString(address _temp) internal pure returns (string) {
-        bytes memory temp = new bytes(20);
-        for (uint i = 0; i < 20; ++i)
-            temp[i] = byte(uint8(uint(_temp) / (2**(8*(19-i)))));
+    function getAuctionStatus(uint idx) public view returns (uint) {
+        auction memory temp = auctions[idx];
+        return uint(temp.status);
+    }
+
+    function getAuctionCountForUser(address user) public view returns (uint) {
+        return auctionOwnerMap[user].length;
+    }
+
+    function getAuctionIdForUserIdx(address user, uint idx) public view returns (uint) {
+        return auctionOwnerMap[user][idx];
+    }
+
+    function cancelAuction(uint auctionId) onlySeller(auctionId) public returns (bool) {
+        auction memory temp = auctions[auctionId];
         
-        return string(temp);
+        if (temp.currentBid >= temp.reservedPrice) revert();   // Auction cannot be cancelled if there is a bid already
+
+        // Refund to the bidder
+        uint bidsLength = temp.bids.length;
+        if (bidsLength > 0) {
+            bid memory topBid = temp.bids[bidsLength - 1];
+            auctionRefunds[topBid.bidder] += topBid.amount;
+        }
+        temp.status = auctionStatus.Dead;
+                
+        auctionCancelled(auctionId);
+        return true;
+    }
+    
+    function getBidCountForAuction(uint auctionId) public view returns (uint) {
+        auction memory temp = auctions[auctionId];
+        return temp.bids.length;
+    }
+
+    function getBidForAuctionByIdx(uint auctionId, uint idx) public view returns (address bidder, uint256 amount, uint timestamp) {
+        auction memory temp = auctions[auctionId];
+        if(idx > temp.bids.length - 1)
+            revert();
+
+        bid memory tempBid = temp.bids[idx];
+        return (tempBid.bidder, tempBid.amount, tempBid.timestamp);
+    }
+    
+    function placeBid(uint auctionId) public payable onlyActive(auctionId) returns (bool success) {
+        uint256 amount = msg.value;
+        auction memory temp = auctions[auctionId];
+
+        if (temp.currentBid >= amount)
+            revert();
+
+        uint bidIdx = temp.bids.length + 1;
+        bid memory tempBid = temp.bids[bidIdx];
+        tempBid.bidder = msg.sender;
+        tempBid.amount = amount;
+        tempBid.timestamp = block.timestamp;
+        temp.currentBid = amount;
+
+        auctionOwnerMap[tempBid.bidder].push(auctionId);
+
+        // Log refunds for the previous bidder
+        if (bidIdx > 0) {
+            bid memory previousBid = temp.bids[bidIdx - 1];
+            auctionRefunds[previousBid.bidder] += previousBid.amount;
+        }
+
+        bidPlaced(auctionId, tempBid.bidder, tempBid.amount);
+        return true;
+    }
+
+    function getRefundValue() public view returns (uint) {
+        return auctionRefunds[msg.sender];
+    }
+
+    function withdrawRefund() public {
+        uint256 refund = auctionRefunds[msg.sender];
+
+        if (refund <= 0)
+            revert();
+        else if(address(this).balance <= refund)
+            revert();
+
+        msg.sender.transfer(refund);
+        auctionRefunds[msg.sender] = 0;
+    }
+
+    function endAuction(uint auctionId) onlySeller(auctionId) onlyActive(auctionId) public returns (bool success) {
+        // Check if the auction is passed the end date
+        auction memory temp = auctions[auctionId];
+
+        if (temp.bids.length == 0) {
+            temp.status = auctionStatus.Dead;
+            return true;
+        }
+
+        bid memory topBid = temp.bids[temp.bids.length - 1];
+
+        // If the auction hit its reserve price
+        if (temp.currentBid >= temp.reservedPrice)
+            auctionSold(auctionId, topBid.bidder, temp.currentBid);
+        else {
+            auctionRefunds[topBid.bidder] += temp.currentBid;
+            auctionUnsold(auctionId, temp.currentBid, temp.reservedPrice);
+        }
+
+        temp.status = auctionStatus.Dead;
+        return true;
+    }
+
+    function () public {
+        revert();
     }
 }
