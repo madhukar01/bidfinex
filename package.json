@@ -1,8 +1,18 @@
 {
   "name": "bidfinex",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "description": "A decentralised marketplace on Ethereum blockchain",
+  "keywords": [ "ethereum",
+    "truffle",
+    "decentralised",
+    "auction",
+    "dapp"
+  ],
   "main": "truffle.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/madhukar01/bidfinex"
+  },
   "scripts": {
     "dev": "lite-server",
     "test": "echo \"Error: no test specified\" && exit 1"
