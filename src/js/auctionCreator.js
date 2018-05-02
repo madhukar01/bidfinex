@@ -59,7 +59,6 @@ function getContract()
 function callFunctions()
 {
     updateNetworkInfo();
-    updateAuctions();
     updateBlockNumber();
 	watchEvents();
 };
@@ -91,7 +90,6 @@ function createNewAuction()
         {
 		    setStatus("Auction created in transaction: " + txId["tx"]);
 		    hideSpinner();
-			updateAuctions();
 		}
 	});
 };
@@ -159,32 +157,6 @@ function updateNetworkInfo()
         }
         network.innerHTML = networkDisplay;
     });
-};
-
-function updateAuctions()
-{
-    console.log("Updating auctions");
-    var auctionSection = document.getElementById("userAuctions");
-    var res = "";
-    
-    bidfinexContract.getAuctionCountForUser.call(account).then(function(count)
-    {
-        console.log("Number of auctions by this user " + count);
-        
-        for (var i = 0; i < count; i++)
-        {
-            bidfinexContract.getAuctionIdForUserIdx.call(account, i).then(function(idx) 
-            {
-                bidfinexContract.getAuction.call(idx).then(function(auc)
-                {
-				    console.log("Found an auction: " + auc[2]);
-				    var bidAmount = web3.fromWei(auc[7], "Ether");
-				    res = res + "<br><a href='auction.html?auctionId=" + idx + "'>" + auc[2] + "</a>: " + bidAmount + " ETH";
-                    auctionSection.innerHTML = res;
-                });
-            });
-        }
-    });     
 };
 
 function updateBlockNumber()

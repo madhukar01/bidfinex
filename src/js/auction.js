@@ -8,7 +8,7 @@ var account;
 var auction;
 var auctions;
 var currentBlockNumber;
-var infoBoxHTMLActive = "<p>Right now this auction is <b>active</b>. You can place a bid, in ether, for this item if you are running <a href='http://metamask.io'>Metamask</a>. It will ask you to authorize your bid transaction, and the ether for your bid will be held by the <a href='https://github.com/dob/auctionhouse/contracts/AuctionHouse.sol'>AuctionHouse contract</a> until you either win the item, or until you are out bid. At that point your bid amount will be transfered back to you or your won item will be transfered to you by the contract.</p>";
+var infoBoxHTMLActive = "<p>Right now this auction is <b>active</b>. You can place a bid, in ether, for this item if you are running <a href='http://metamask.io'>Metamask</a>. It will ask you to authorize your bid transaction, and the ether for your bid will be held by the BidFinex contract until you either win the item, or until you are out bid.<p> At that point your bid amount will be transfered back to you or your won item will be transfered to you by the contract.</p>";
 var infoBoxHTMLInactive = "<p>Right now this auction is either over, or was cancelled. You can not place a bid on this item at this point. Try browsing the other <a href='index.html#auctions'>currently active auctions</a>.</p>";
 
 function start()
@@ -297,7 +297,8 @@ function watchEvents()
 		} 
         else 
 		{ 
-			console.log("Got an event: " + msg.event);
+            console.log("Got an event: " + msg.event);
+            //alert("Got an event: "+ msg.event);
 		}
 	});
 

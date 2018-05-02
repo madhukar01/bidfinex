@@ -25,32 +25,21 @@
       </div>
       <div id="navbar" class="navbar-collapse collapse">
         <ul class="nav navbar-nav">
-          <li class="active"><a href="index.html">Home</a></li>
+          <li><a href="index.html">Home</a></li>
           <li><a href="index.html#auctionRow">Auctions</a></li>
           <li><a href="createAuction.html">New Auction</a></li>
-          <li><a href="history.html">History</a></li>
+          <li class="active"><a href="history.html">History</a></li>          
         </ul>
       </div>
     </div>
   </nav>
 
   <div role="main">
-    <div class="row" id="headerRow">
-      <div>
-        <img src="images/logo.png" alt="BidFinex" id="heroImage">
-        <div id="headerLabel"><h1>A Decentralised Marketplace</h1></div>
-        <p>
-          <a role="button" class="btn btn-lg btn-primary" href="createAuction.html" id="createAuctionButton">Create an auction</a>
-        </p>
-        <hr />
-      </div>
-    </div>
-
     <div class="row" id="auctionRow">
       <div class="col-md-1"></div>
       <div class="col-md-10">
         <div id="auctionSection">
-          <h1>Currently Running Auctions</h1>
+          <h1>Your Auction History</h1>
         </div>
         <table class="table table-striped">
           <thead>
@@ -59,7 +48,7 @@
               <th>Starting Price</th>
               <th>Current Bid</th>
               <th># of Bids</th>
-              <th>Time remaining</th>
+              <th>Deadline</th>
             </tr>
           </thead>
           <tbody id="userAuctions"></tbody>
@@ -117,6 +106,6 @@
     <script src="js/bootstrap.min.js"></script>
     <script src="js/web3.min.js"></script>
     <script src="js/truffle-contract.min.js"></script>
-    <script src="js/home.js"></script>
+    <script src="js/history.js"></script>
   </body>
 </html>

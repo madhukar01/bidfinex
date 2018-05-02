@@ -166,11 +166,13 @@ function waitAndRefresh(count)
       var auc = auctionsArray[j];
       if (parseInt(auc[4]) > currentBlockNumber)
       {
+        var n = parseInt(auc[4])- currentBlockNumber;
         res = res + "<tr>";
         res = res + "<td><a href='auction.html?auctionId=" + auc[1] + "'>" + auc[2] + "</a></td>";
+        res = res + "<td>" + web3.fromWei(auc[5], "ether") + " ETH" + "</td>";        
         res = res + "<td>" + web3.fromWei(auc[7], "ether") + " ETH" + "</td>";
         res = res + "<td>" + auc[8] + "</td>";
-        res = res + "<td>" + auc[4] + "</td>";
+        res = res + "<td>" + n + "</td>";
         res = res + "</tr>";
       }
     }
@@ -214,7 +216,7 @@ function withdraw()
     {
       setStatus("Withdraw finished.");
       hideSpinner();
-      updateEthNetworkInfo();
+      updateNetworkInfo();
     });
   }
 };
