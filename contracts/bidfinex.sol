@@ -1,4 +1,4 @@
-pragma solidity ^0.4.19;
+pragma solidity ^0.4.2;
 
 contract bidfinex {
     
@@ -17,13 +17,10 @@ contract bidfinex {
         uint auctionId;
         string description;
         auctionStatus status;
-        uint deadline; //Deadline will be block number as contract will not have access to time and date.
-        
-        //Price will be in wei a unit of gas.
+        uint deadline;
         uint256 startingPrice;
         uint256 reservedPrice;
         uint256 currentBid;
-
         bid[] bids;
     }
 
@@ -32,17 +29,13 @@ contract bidfinex {
     mapping(address => uint[]) public auctionBidderMap;
     
     auction[] public auctions;
-    address owner;
     
     modifier onlySeller (uint auctionId) {
         if (auctions[auctionId].seller != msg.sender)
-        revert();
-        _;
-    }
-    
-    modifier onlyOwner {
-        if (owner != msg.sender)
-        revert();
+        {
+            emit throwError("Error: You are not the seller of this auction !");
+            revert();
+        }
         _;
     }
 
@@ -50,11 +43,16 @@ contract bidfinex {
         auction memory temp = auctions[auctionId];
         
         if (temp.status != auctionStatus.Live)
-        revert();
+        {
+            emit throwError("Error: Auction is not live !");            
+            revert();
+        }
 
         else if (block.number >= temp.deadline)
-        revert();
-        
+        {
+            emit throwError("Error: Deadline has crossed !");                        
+            revert();
+        }
         _;
     }
 
@@ -65,9 +63,9 @@ contract bidfinex {
     event bidPlaced(uint auctionId, address bidder, uint256 amount);
     event auctionSold(uint auctionId, address winningBidder, uint256 amount);
     event auctionUnsold(uint auctionId, uint256 topBid, uint256 reservePrice);
+    event withdrawalSuccess(uint amount, address accountAddress);
 
-    function bidfinex() public {
-        owner = msg.sender;
+    constructor() public {
     }
 
     function createAuction( string _title,
@@ -75,16 +73,17 @@ contract bidfinex {
                             uint _deadline,
                             uint256 _startingPrice,
                             uint256 _reservedPrice )
-                            public returns (uint id) {
-
-        //else
-        if(block.number >= _deadline) {
-            throwError("Invalid deadline entered");
+                            public returns (uint id)
+    {
+        if(block.number >= _deadline)
+        {
+            emit throwError("Invalid deadline entered");
             revert();
         }
 
-        else if (_startingPrice < 0 || _reservedPrice < 0 || _reservedPrice < _startingPrice) {
-            throwError("Invalid value entered for price section");
+        if (_startingPrice < 0 || _reservedPrice < 0 || _reservedPrice < _startingPrice)
+        {
+            emit throwError("Invalid value entered for price section");
             revert();
         }
 
@@ -99,20 +98,17 @@ contract bidfinex {
         newAuction.deadline = _deadline;
         newAuction.startingPrice = _startingPrice;
         newAuction.reservedPrice = _reservedPrice;
-        newAuction.currentBid = _reservedPrice;
 
         auctionOwnerMap[newAuction.seller].push(id);
 
-        auctionCreated(id, newAuction.title, newAuction.startingPrice, newAuction.reservedPrice);
+        emit auctionCreated(id, newAuction.title, newAuction.startingPrice, newAuction.reservedPrice);
 
         return id;
     }
     
-    function getAuction(uint idx) public view returns (address, uint, string, string, uint, uint256, uint256, uint256, uint) {
+    function getAuction(uint idx) public view returns (address, uint, string, string, uint, uint256, uint256, uint256, uint)
+    {
         auction memory temp = auctions[idx];
-        if (temp.seller == 0) 
-            revert();
-
         return (temp.seller,
                 temp.auctionId,
                 temp.title,
@@ -124,69 +120,63 @@ contract bidfinex {
                 temp.bids.length);
     }
 
-    function getAuctionCount() public view returns (uint) {
+    /*
+    0 -> Seller
+    1 -> Auction ID
+    2 -> Title
+    3 -> Description
+    4 -> Deadline
+    5 -> Starting price
+    6 -> Reserved price
+    7 -> Current bid
+    8 -> # of bids
+    */
+    function getAuctionCount() public view returns (uint)
+    {
         return auctions.length;
     }
 
-    function getAuctionStatus(uint idx) public view returns (uint) {
+    function getAuctionStatus(uint idx) public view returns (uint)
+    {
         auction memory temp = auctions[idx];
         return uint(temp.status);
     }
 
-    function getAuctionCountForUser(address user) public view returns (uint) {
+    function getAuctionCountForUser(address user) public view returns (uint)
+    {
         return auctionOwnerMap[user].length;
     }
 
-    function getAuctionIdForUserIdx(address user, uint idx) public view returns (uint) {
+    function getAuctionIdForUserIdx(address user, uint idx) public view returns (uint)
+    {
         return auctionOwnerMap[user][idx];
     }
 
-    function cancelAuction(uint auctionId) onlySeller(auctionId) public returns (bool) {
-        auction memory temp = auctions[auctionId];
-        
-        if (temp.currentBid >= temp.reservedPrice) revert();   // Auction cannot be cancelled if there is a bid already
-
-        // Refund to the bidder
-        uint bidsLength = temp.bids.length;
-        if (bidsLength > 0) {
-            bid memory topBid = temp.bids[bidsLength - 1];
-            auctionRefunds[topBid.bidder] += topBid.amount;
-        }
-        temp.status = auctionStatus.Dead;
-                
-        auctionCancelled(auctionId);
-        return true;
-    }
-    
-    function getBidCountForAuction(uint auctionId) public view returns (uint) {
+    function getBidCountForAuction(uint auctionId) public view returns (uint)
+    {
         auction memory temp = auctions[auctionId];
         return temp.bids.length;
     }
-
-    function getBidForAuctionByIdx(uint auctionId, uint idx) public view returns (address bidder, uint256 amount, uint timestamp) {
-        auction memory temp = auctions[auctionId];
-        if(idx > temp.bids.length - 1)
-            revert();
-
-        bid memory tempBid = temp.bids[idx];
-        return (tempBid.bidder, tempBid.amount, tempBid.timestamp);
-    }
     
-    function placeBid(uint auctionId) public payable onlyActive(auctionId) returns (bool success) {
+    function placeBid(uint auctionId) public payable onlyActive(auctionId) returns (bool success)
+    {
         uint256 amount = msg.value;
-        auction memory temp = auctions[auctionId];
+        auction storage temp = auctions[auctionId];
 
         if (temp.currentBid >= amount)
+        {
+            emit throwError("Error: Amount bid is less than the latest bid !");
             revert();
+        }
 
-        uint bidIdx = temp.bids.length + 1;
-        bid memory tempBid = temp.bids[bidIdx];
+        uint bidIdx = temp.bids.length++;
+        bid storage tempBid = temp.bids[bidIdx];
         tempBid.bidder = msg.sender;
         tempBid.amount = amount;
         tempBid.timestamp = block.timestamp;
         temp.currentBid = amount;
 
-        auctionOwnerMap[tempBid.bidder].push(auctionId);
+        auctionBidderMap[tempBid.bidder].push(auctionId);
 
         // Log refunds for the previous bidder
         if (bidIdx > 0) {
@@ -194,7 +184,7 @@ contract bidfinex {
             auctionRefunds[previousBid.bidder] += previousBid.amount;
         }
 
-        bidPlaced(auctionId, tempBid.bidder, tempBid.amount);
+        emit bidPlaced(auctionId, tempBid.bidder, tempBid.amount);
         return true;
     }
 
@@ -203,41 +193,62 @@ contract bidfinex {
     }
 
     function withdrawRefund() public {
-        uint256 refund = auctionRefunds[msg.sender];
+        uint256 refund = auctionRefunds[msg.sender] - 1;
 
         if (refund <= 0)
+        {
+            emit throwError("Error: Invalid refund amount !");
             revert();
+        }
         else if(address(this).balance <= refund)
+        {
+            emit throwError("Error: Insifficient funds in contract, Try again later !");
             revert();
+        }
 
-        msg.sender.transfer(refund);
-        auctionRefunds[msg.sender] = 0;
+        if(msg.sender.send(refund))
+        {
+            emit withdrawalSuccess(refund, msg.sender);
+            auctionRefunds[msg.sender] = 0;
+        }
+        else
+        {
+            emit throwError("Withdraw failed !");
+        }
     }
 
-    function endAuction(uint auctionId) onlySeller(auctionId) onlyActive(auctionId) public returns (bool success) {
-        // Check if the auction is passed the end date
+    function endAuction(uint auctionId) public returns (bool success)
+    {
         auction memory temp = auctions[auctionId];
 
         if (temp.bids.length == 0) {
             temp.status = auctionStatus.Dead;
+            emit auctionUnsold(auctionId, 0, 0);
             return true;
         }
 
-        bid memory topBid = temp.bids[temp.bids.length - 1];
+        else
+        {
+            bid memory topBid = temp.bids[temp.bids.length - 1];
 
-        // If the auction hit its reserve price
-        if (temp.currentBid >= temp.reservedPrice)
-            auctionSold(auctionId, topBid.bidder, temp.currentBid);
-        else {
-            auctionRefunds[topBid.bidder] += temp.currentBid;
-            auctionUnsold(auctionId, temp.currentBid, temp.reservedPrice);
+            if (temp.currentBid >= temp.reservedPrice)
+            {
+                auctionRefunds[temp.seller] += temp.currentBid;
+                emit auctionSold(auctionId, topBid.bidder, temp.currentBid);
+            }
+            else
+            {
+                auctionRefunds[topBid.bidder] += temp.currentBid;
+                emit auctionUnsold(auctionId, temp.currentBid, temp.reservedPrice);
+            }
+
+            temp.status = auctionStatus.Dead;
+            return true;
         }
-
-        temp.status = auctionStatus.Dead;
-        return true;
     }
 
     function () public {
+        emit throwError("Error: No data sent !");
         revert();
     }
 }
